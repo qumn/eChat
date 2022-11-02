@@ -1,0 +1,39 @@
+@startuml
+entity User {
+  * uid
+  -- 
+  username
+  mail
+  password
+  salt
+  create_time
+  update_time
+}
+
+entity Group {
+ * gid
+ --
+ gname
+}
+
+entity group_user {
+  * gid
+  * uid
+  -- 
+  type
+}
+
+User }|--o{ Group
+
+
+
+entity Message {
+  * mid
+  --
+  sender_uid
+  receiver_type
+  receiver_id
+  content
+  create_time
+}
+@enduml

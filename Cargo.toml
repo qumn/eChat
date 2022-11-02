@@ -1,0 +1,23 @@
+[package]
+name = "eChat"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+axum = { version = "0.5.17", features = ["headers"] }
+axum-macros = "0.2.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.68"
+tokio = { version = "1.0", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "mysql", "chrono"] }
+chrono =  { version = "0.4.15", features = ["serde"] }
+ring = "0.16.20"
+data-encoding = "2.3.2"
+thiserror="1.0.37"
+anyhow="1.0.66"
+jsonwebtoken="8"
