@@ -358,6 +358,7 @@ dependencies = [
  "axum-macros",
  "chrono",
  "data-encoding",
+ "dotenvy",
  "jsonwebtoken",
  "ring",
  "serde",

@@ -3,9 +3,16 @@ use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use sqlx::error::DatabaseError;
+use sqlx::mysql::MySqlDatabaseError;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use tracing::log;
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+pub fn Ok<T>(t: T) -> Result<T> {
+    std::result::Result::Ok(t)
+}
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -25,6 +32,9 @@ pub enum Error {
 
     #[error("error occurred with the database")]
     Sqlx(#[from] sqlx::Error),
+
+    #[error("{0}")]
+    Duplicated(String),
 
     #[error("an internal server error occurred")]
     Anyhow(#[from] anyhow::Error),
@@ -59,7 +69,9 @@ impl Error {
             Self::Forbidden => StatusCode::FORBIDDEN,
             Self::NotFound => StatusCode::NOT_FOUND,
             Self::UnprocessableEntity { .. } => StatusCode::UNPROCESSABLE_ENTITY,
-            Self::Sqlx(_) | Self::Anyhow(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Sqlx(_) | Self::Anyhow(_) | Self::Duplicated(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         }
     }
 }
@@ -72,7 +84,6 @@ impl Error {
 impl IntoResponse for Error {
     //type Body = Full<Bytes>;
     //type BodyError = <Full<Bytes> as HttpBody>::Error;
-
     fn into_response(self) -> Response {
         match self {
             Self::UnprocessableEntity { errors } => {
@@ -114,7 +125,6 @@ impl IntoResponse for Error {
                 // so that this gets linked to the HTTP request by `TraceLayer`.
                 log::error!("Generic error: {:?}", e);
             }
-
             // Other errors get mapped normally.
             _ => (),
         }
@@ -131,10 +141,12 @@ pub trait ResultExt<T> {
         self,
         name: &str,
         f: impl FnOnce(Box<dyn DatabaseError>) -> Error,
-    ) -> Result<T, Error>;
+    ) -> Result<T>;
+
+    fn on_duplicated(self, f: String) -> Result<T>;
 }
 
-impl<T, E> ResultExt<T> for Result<T, E>
+impl<T, E> ResultExt<T> for std::result::Result<T, E>
 where
     E: Into<Error>,
 {
@@ -142,7 +154,7 @@ where
         self,
         name: &str,
         map_err: impl FnOnce(Box<dyn DatabaseError>) -> Error,
-    ) -> Result<T, Error> {
+    ) -> Result<T> {
         self.map_err(|e| match e.into() {
             Error::Sqlx(sqlx::Error::Database(dbe)) if dbe.constraint() == Some(name) => {
                 println!("{:?}", dbe.constraint());
@@ -150,5 +162,26 @@ where
             }
             e => e,
         })
+    }
+
+    fn on_duplicated(self, msg: String) -> Result<T> {
+        self.map_err(|e| -> Error {match e.into() {
+            Error::Sqlx(sqlx::Error::Database(dbe)) => {
+                println!("e: {:?}", dbe);
+                match dbe.try_downcast_ref::<MySqlDatabaseError>() {
+                    // 1062 is the error code of mysql duplicate entry
+                    Some(mysql_dbe)  => {
+                        if mysql_dbe.number() == 1062{}
+                        println!("some");
+                        Error::Duplicated(msg)
+                    }
+                    None => {
+                        println!("none");
+                        Error::Sqlx(sqlx::Error::Database(dbe))
+                    }
+                }
+            }
+            e => e,
+        }})
     }
 }
