@@ -1,11 +1,11 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use axum::extract::{FromRequest, RequestParts};
 use axum::headers::{authorization::Bearer, Authorization};
 use axum::{async_trait, TypedHeader};
+use chrono::{Duration, Local, Timelike};
 use eChat::err::Error;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 
 const SECRET: &'static str = "secret";
 
@@ -19,12 +19,10 @@ pub struct AuthUser {
 
 impl AuthUser {
     pub fn new(uid: u64, username: String, mail: String) -> Self {
+        // get now sec
+        let exp = (Local::now() + Duration::days(3)).timestamp() as usize;
         AuthUser {
-            exp: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as usize
-                + 3 * 60 * 60,
+            exp,
             uid,
             username,
             mail,
@@ -38,14 +36,19 @@ impl AuthUser {
         )
         .unwrap()
     }
-    fn decode(token: &str) -> Self {
+
+    fn decode(token: &str) -> Result<Self, Error> {
+        debug!(token = token, "parse token");
         decode::<AuthUser>(
             token,
             &DecodingKey::from_secret(SECRET.as_ref()),
             &Validation::default(),
         )
-        .unwrap()
-        .claims
+        .map(|data| data.claims)
+        .map_err(|e| {
+            debug!(error = ?e, "while parse token");
+            Error::Unauthorized
+        })
     }
 }
 
@@ -60,6 +63,20 @@ where
         let authorization = TypedHeader::<Authorization<Bearer>>::from_request(req)
             .await
             .map_err(|_| Error::Unauthorized)?;
-        Ok(AuthUser::decode(authorization.token()))
+        AuthUser::decode(authorization.token())
+    }
+}
+
+#[cfg(test)]
+mod test{
+    use std::time::SystemTime;
+
+    use chrono::{Local, Timelike};
+
+    #[test]
+    fn test(){
+        let seconds1 = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+        let seconds2 = Local::now().timestamp();
+        println!("{} {}", seconds1, seconds2);
     }
 }

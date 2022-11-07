@@ -28,7 +28,7 @@ pub struct LoginUser {
     pub password: String,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct CreateUser {
     pub username: String,
     pub mail: String,

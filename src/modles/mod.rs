@@ -1,4 +1,3 @@
-mod user;
-mod friend;
-pub use user::*;
-pub use friend::*;
+pub mod user;
+pub mod friend;
+pub mod group;

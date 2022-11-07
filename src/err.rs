@@ -6,13 +6,9 @@ use sqlx::error::DatabaseError;
 use sqlx::mysql::MySqlDatabaseError;
 use std::borrow::Cow;
 use std::collections::HashMap;
-use tracing::log;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub fn Ok<T>(t: T) -> Result<T> {
-    std::result::Result::Ok(t)
-}
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -22,7 +18,7 @@ pub enum Error {
     #[error("user may not perform that action")]
     Forbidden,
 
-    #[error("reqeust path not found")]
+    #[error("request path not found")]
     NotFound,
 
     #[error("error in the request body")]
@@ -115,15 +111,14 @@ impl IntoResponse for Error {
             }
 
             Self::Sqlx(ref e) => {
-                // TODO: we probably want to use `tracing` instead
-                // so that this gets linked to the HTTP request by `TraceLayer`.
-                log::error!("SQLx error: {:?}", e);
+                tracing::error!("SQLx error: {:?}", e);
             }
 
             Self::Anyhow(ref e) => {
-                // TODO: we probably want to use `tracing` instead
-                // so that this gets linked to the HTTP request by `TraceLayer`.
-                log::error!("Generic error: {:?}", e);
+                tracing::error!("Generic error: {:?}", e);
+            }
+            Self::Duplicated(ref e) => {
+                tracing::error!("Duplicate error: {:?}", e);
             }
             // Other errors get mapped normally.
             _ => (),
@@ -157,7 +152,6 @@ where
     ) -> Result<T> {
         self.map_err(|e| match e.into() {
             Error::Sqlx(sqlx::Error::Database(dbe)) if dbe.constraint() == Some(name) => {
-                println!("{:?}", dbe.constraint());
                 map_err(dbe)
             }
             e => e,
@@ -165,23 +159,17 @@ where
     }
 
     fn on_duplicated(self, msg: String) -> Result<T> {
-        self.map_err(|e| -> Error {match e.into() {
-            Error::Sqlx(sqlx::Error::Database(dbe)) => {
-                println!("e: {:?}", dbe);
-                match dbe.try_downcast_ref::<MySqlDatabaseError>() {
-                    // 1062 is the error code of mysql duplicate entry
-                    Some(mysql_dbe)  => {
-                        if mysql_dbe.number() == 1062{}
-                        println!("some");
-                        Error::Duplicated(msg)
-                    }
-                    None => {
-                        println!("none");
-                        Error::Sqlx(sqlx::Error::Database(dbe))
+        self.map_err(|e| -> Error {
+            match e.into() {
+                Error::Sqlx(sqlx::Error::Database(dbe)) => {
+                    match dbe.try_downcast_ref::<MySqlDatabaseError>() {
+                        // 1062 is the error code of mysql duplicate entry
+                        Some(mysql_dbe) if mysql_dbe.number() == 1062 => Error::Duplicated(msg),
+                        _ => Error::Sqlx(sqlx::Error::Database(dbe)),
                     }
                 }
+                e => e,
             }
-            e => e,
-        }})
+        })
     }
 }

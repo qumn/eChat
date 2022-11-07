@@ -1,17 +1,22 @@
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Debug)]
-struct Friend {
+pub struct Friend {
     fid: u64,
-    user_id: u64,
+    uid: u64,
     friend_id: u64,
     status: FriendStatus,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, sqlx::Type)]
-#[sqlx(rename_all = "snake_case")]
-enum FriendStatus {
-    Pending,
-    Agree,
-    Refused,
+#[repr(i8)]
+pub enum FriendStatus {
+    Pending = 0,
+    Agree = 1,
+    Refused = 2,
+}
+
+#[derive(Deserialize)]
+pub struct AddFriend {
+    pub friend_id: u64
 }

@@ -1,11 +1,12 @@
-use eChat::err::Ok;
 use eChat::err::Result;
 use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
-mod user;
 mod friend;
+mod user;
+mod group;
 
+pub use friend::FriendManage;
 pub use user::UserManage;
-
+pub use group::GroupManage;
 
 // get connect pool
 pub async fn get_pool() -> Result<Pool<MySql>> {

@@ -9,7 +9,7 @@ use eChat::err::Error;
 use eChat::utils;
 
 use crate::auth::AuthUser;
-use crate::modles::*;
+use crate::modles::user::*;
 use crate::persistent::UserManage;
 use crate::ApiContext;
 
@@ -28,7 +28,10 @@ async fn login(
     let user = user_manage
         .get_user_by_username(&login_user.username)
         .await?;
-
+    if user.is_none() {
+        return Err(Error::unprocessable_entity([("msg", "用户不存在")]));
+    }
+    let user = user.unwrap();
     if !utils::verify(&login_user.password, &user.password, &user.salt) {
         return Err(Error::unprocessable_entity([("msg", "用户名或者密码错误")]));
     }
@@ -51,6 +54,7 @@ async fn create_user(
     Json(user): Json<CreateUser>,
     Extension(user_manage): Extension<UserManage>,
 ) -> Result<String, Error> {
+    tracing::info!(user = ?user, "create a user");
     user_manage.create_user(user.into()).await?;
     Ok("注册成功".to_string())
 }
