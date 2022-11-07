@@ -18,6 +18,10 @@ pub struct ApiContext {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    dotenvy::dotenv().unwrap(); // load .env file
+    // Initialize the logger 
+    tracing_subscriber::fmt::init();
+    //tracing_subscriber::fmt().with_max_level(tracing::Level::TRACE).init();
     let pool = get_pool().await?;
     let ctx = ApiContext { db: Arc::new(pool) };
     let app = api_router(&ctx).layer(Extension(ctx));
