@@ -8,10 +8,11 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `friend`;
 CREATE TABLE `friend` (
   `fid` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
-  `user_id` bigint unsigned NOT NULL COMMENT '用户id',
-  `firend_id` bigint unsigned NOT NULL COMMENT '好友id',
-  `state` enum('pending','agree','refused') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT 'pending 等待处理中, agree 同意, refused 拒绝',
-  PRIMARY KEY (`fid`)
+  `uid` bigint unsigned NOT NULL COMMENT '用户id',
+  `friend_id` bigint unsigned NOT NULL COMMENT '好友id',
+  `status` tinyint NOT NULL COMMENT '0 等待处理中, 1 同意, 2 拒绝',
+  PRIMARY KEY (`fid`),
+  UNIQUE KEY `uid_friend_id` (`uid`,`friend_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
