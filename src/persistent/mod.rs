@@ -3,10 +3,12 @@ use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
 mod friend;
 mod user;
 mod group;
+mod message;
 
 pub use friend::FriendManage;
 pub use user::UserManage;
 pub use group::GroupManage;
+pub use message::MessageManage;
 
 // get connect pool
 pub async fn get_pool() -> Result<Pool<MySql>> {
