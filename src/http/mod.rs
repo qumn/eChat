@@ -1,7 +1,8 @@
-mod user;
+ mod user;
 mod friend;
 mod msg;
 mod group;
+mod message;
 
 use axum::Router;
 
@@ -13,4 +14,5 @@ pub fn api_router(ctx: &ApiContext) -> Router {
     user::router(ctx)
         .merge(friend::router(ctx))
         .merge(group::router(ctx))
+        .merge(message::router(ctx))
 }

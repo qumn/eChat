@@ -3,14 +3,17 @@ mod http;
 mod modles;
 mod persistent;
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
+use axum::Extension;
 use dashmap::DashMap;
 use eChat::err::Error;
 use http::api_router;
 use modles::message::Msg;
 use persistent::get_pool;
 use sqlx::MySqlPool;
+use tokio::sync::Mutex;
 use tokio::sync::mpsc::Sender;
 use tower_http::cors::{CorsLayer};
 use tower_http::trace::TraceLayer;
@@ -18,7 +21,7 @@ use tower_http::trace::TraceLayer;
 #[derive(Clone)]
 pub struct ApiContext {
     pub db: Arc<MySqlPool>,
-    pub sender_map: DashMap<u64, Sender<Msg>>,
+    pub sender_map: Arc<Mutex<HashMap<u64, Sender<Msg>>>>,
 }
 
 #[tokio::main]
@@ -30,9 +33,10 @@ async fn main() -> Result<(), Error> {
     let pool = get_pool().await?;
     let ctx = ApiContext {
         db: Arc::new(pool),
-        sender_map: DashMap::new(),
+        sender_map: Arc::new(Mutex::new(HashMap::default()))
     };
     let app = api_router(&ctx)
+        .layer(Extension(ctx))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http());
 

@@ -32,6 +32,12 @@ pub enum Error {
     #[error("{0}")]
     Duplicated(String),
 
+    #[error("error occurred server internal")]
+    Axum(#[from] axum::Error),
+
+    #[error("error occurred while parse json")]
+    Serde(#[from] serde_json::Error),
+
     #[error("an internal server error occurred")]
     Anyhow(#[from] anyhow::Error),
 }
@@ -65,7 +71,7 @@ impl Error {
             Self::Forbidden => StatusCode::FORBIDDEN,
             Self::NotFound => StatusCode::NOT_FOUND,
             Self::UnprocessableEntity { .. } => StatusCode::UNPROCESSABLE_ENTITY,
-            Self::Sqlx(_) | Self::Anyhow(_) | Self::Duplicated(_) => {
+            Self::Sqlx(_) | Self::Anyhow(_) | Self::Duplicated(_) | Self::Axum(_) | Self::Serde(_) => {
                 StatusCode::INTERNAL_SERVER_ERROR
             }
         }
@@ -81,6 +87,7 @@ impl IntoResponse for Error {
     //type Body = Full<Bytes>;
     //type BodyError = <Full<Bytes> as HttpBody>::Error;
     fn into_response(self) -> Response {
+        tracing::error!(error =?self, "meet a error");
         match self {
             Self::UnprocessableEntity { errors } => {
                 #[derive(serde::Serialize)]

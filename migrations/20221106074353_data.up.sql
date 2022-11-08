@@ -1000,3 +1000,5 @@ insert into user (mail, username, password, salt, create_time) values ('eslidesr
 insert into user (mail, username, password, salt, create_time) values ('aseftonrp@usa.gov', 'czanicchirp', 'nChPNbXhig', '07WZav5f6q5', '2022-04-22 04:18:34');
 insert into user (mail, username, password, salt, create_time) values ('msmicklerq@dailymotion.com', 'rnyssensrq', '5UUdtYJYr', 'Lq9vr6B', '2022-07-19 23:11:17');
 insert into user (mail, username, password, salt, create_time) values ('ecasselyrr@dailymotion.com', 'rblunderfieldrr', 'Ager6iW', 'cOOUeXzYBFVl', '2022-02-09 00:26:21');
+-- set all data password=123
+update user set password = 'ezaMtmis9Zsa0Oh2Iz9LVSoz1YAW1BRqkxWMJdQF51g=', salt = 'KMM4bCeFoclT5bwN4fhfhSlczLC8sREjFo1xyE6Y7DI=';
