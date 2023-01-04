@@ -46,7 +46,7 @@ async fn handle_socket(
     // a channel which community with other user
     let (tx, rx) = channel::<Msg>(DEFAULT_MESSAGE_QUEUE_SIZE);
     // save current user sender end for other user to send message
-    ctx.sender_map.lock().await.insert(auth_user.uid, tx);
+    ctx.active_users.lock().await.insert(auth_user.uid, tx);
 
     // TODO: make a nicer name
     let receiver_task = receiver_message(receiver, &ctx, message_manage, auth_user);
@@ -80,7 +80,7 @@ async fn receiver_message(
         debug!("receiver a message {:?}", message);
         match message {
             Message::Text(message) => {
-                let map = &ctx.sender_map;
+                let map = &ctx.active_users;
                 if let Ok(msg) = serde_json::from_str::<Msg>(&message) {
                     // first save message
                     message_manage.create_message(msg.to_message(auth_user.uid)).await?;
@@ -101,7 +101,7 @@ async fn receiver_message(
                 }
             }
             Message::Close(_) => {
-                let map = &ctx.sender_map;
+                let map = &ctx.active_users;
                 map.lock().await.remove(&auth_user.uid);
             }
             _ => {

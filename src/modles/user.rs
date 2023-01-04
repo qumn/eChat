@@ -1,6 +1,7 @@
 use chrono::NaiveDateTime;
-use eChat::utils;
 use serde::{Deserialize, Serialize};
+
+use crate::utils;
 
 #[derive(Debug)]
 pub struct User {

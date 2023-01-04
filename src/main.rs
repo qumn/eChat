@@ -2,6 +2,8 @@ mod auth;
 mod http;
 mod modles;
 mod persistent;
+mod err;
+mod utils;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -21,7 +23,7 @@ use tower_http::trace::TraceLayer;
 #[derive(Clone)]
 pub struct ApiContext {
     pub db: Arc<MySqlPool>,
-    pub sender_map: Arc<Mutex<HashMap<u64, Sender<Msg>>>>,
+    pub active_users: Arc<Mutex<HashMap<u64, Sender<Msg>>>>,
 }
 
 #[tokio::main]
@@ -33,7 +35,7 @@ async fn main() -> Result<(), Error> {
     let pool = get_pool().await?;
     let ctx = ApiContext {
         db: Arc::new(pool),
-        sender_map: Arc::new(Mutex::new(HashMap::default()))
+        active_users: Arc::new(Mutex::new(HashMap::default()))
     };
     let app = api_router(&ctx)
         .layer(Extension(ctx))
